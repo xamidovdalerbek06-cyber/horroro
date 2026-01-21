@@ -1,43 +1,41 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SIGNAL LOSS - Mobile Edition</title>
+    <title>SIGNAL LOSS - Mobile Build</title>
     <style>
-        body { margin: 0; padding: 0; overflow: hidden; background: #000; font-family: monospace; user-select: none; touch-action: none; }
+        body { margin: 0; padding: 0; overflow: hidden; background: #000; font-family: 'Courier New', monospace; user-select: none; touch-action: none; }
         #canvas { display: block; width: 100vw; height: 100vh; }
         
-        /* UI Overlay */
-        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
-        
-        /* Joystick */
-        #joystick-base { 
-            position: absolute; bottom: 40px; left: 40px; 
-            width: 120px; height: 120px; background: rgba(255,255,255,0.1); 
-            border: 2px solid rgba(255,255,255,0.3); border-radius: 50%; pointer-events: auto;
-        }
-        #joystick-knob { 
-            position: absolute; top: 35px; left: 35px; 
-            width: 50px; height: 50px; background: rgba(255,255,255,0.5); border-radius: 50%; 
-        }
-
-        /* Buttons */
-        .btn { 
-            position: absolute; width: 60px; height: 60px; 
-            background: rgba(255,255,255,0.1); border: 1px solid #fff; 
-            color: white; display: flex; align-items: center; justify-content: center; 
-            font-size: 10px; border-radius: 10px; pointer-events: auto;
-        }
-        #btn-light { bottom: 120px; right: 30px; }
-        #btn-sprint { bottom: 40px; right: 30px; background: rgba(255,0,0,0.1); }
-        #btn-radio { bottom: 200px; right: 30px; }
-
         /* HUD */
-        #hud { position: absolute; top: 20px; left: 20px; color: #fff; text-shadow: 1px 1px #000; }
-        #radio-msg { position: absolute; top: 20px; right: 20px; color: #0f0; text-align: right; font-size: 12px; width: 150px; }
-        #battery-bar { width: 100px; height: 5px; background: #333; margin-top: 5px; }
-        #battery-fill { height: 100%; background: #0f0; width: 100%; }
+        #hud { position: absolute; top: env(safe-area-inset-top, 20px); left: 20px; color: #fff; pointer-events: none; z-index: 5; }
+        #battery-bar { width: 100px; height: 6px; background: #333; margin-top: 5px; border: 1px solid #555; }
+        #battery-fill { height: 100%; background: #0f0; width: 100%; transition: width 0.2s; }
+        #radio-msg { position: absolute; top: env(safe-area-inset-top, 20px); right: 20px; color: #0f0; text-align: right; font-size: 12px; width: 180px; pointer-events: none; }
+
+        /* Movement Joystick */
+        #joy-base { 
+            position: absolute; bottom: 40px; left: 40px; 
+            width: 140px; height: 140px; background: rgba(255,255,255,0.05); 
+            border: 2px solid rgba(255,255,255,0.2); border-radius: 50%; 
+            touch-action: none; z-index: 10;
+        }
+        #joy-knob { 
+            position: absolute; top: 45px; left: 45px; 
+            width: 50px; height: 50px; background: rgba(255,255,255,0.3); 
+            border-radius: 50%; pointer-events: none;
+        }
+
+        /* Action Buttons */
+        .btn { 
+            position: absolute; width: 75px; height: 75px; 
+            background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.5); 
+            color: white; display: flex; align-items: center; justify-content: center; 
+            font-size: 11px; border-radius: 50%; z-index: 20; touch-action: none;
+        }
+        #btn-light { bottom: 130px; right: 30px; }
+        #btn-sprint { bottom: 40px; right: 30px; border-color: #f44; color: #f44; }
 
         #start-screen {
             position: absolute; width: 100%; height: 100%; background: #000;
@@ -47,35 +45,32 @@
 </head>
 <body>
 
-    <div id="start-screen" onclick="init()">
-        <h1 style="letter-spacing: 10px;">SIGNAL LOSS</h1>
+    <div id="start-screen" onclick="begin()">
+        <h1 style="letter-spacing: 10px; color: #f00;">SIGNAL LOSS</h1>
         <p>MOBILE INSPECTION UNIT</p>
-        <div style="border: 2px solid #fff; padding: 20px; margin: 20px;">[ TAP TO START ]</div>
+        <div style="border: 2px solid #fff; padding: 20px; margin: 20px; border-radius: 10px;">[ TAP TO START ]</div>
+        <p style="font-size: 10px; color: #666;">Joystick: Move | Right Screen: Look</p>
     </div>
 
     <canvas id="canvas"></canvas>
 
-    <div id="ui-layer">
-        <div id="joystick-base"><div id="joystick-knob"></div></div>
-        
-        <div id="btn-light" class="btn" onclick="toggleLight()">LIGHT</div>
-        <div id="btn-radio" class="btn" onclick="toggleRadio()">RADIO</div>
-        <div id="btn-sprint" class="btn">SPRINT</div>
-
-        <div id="hud">
-            TORCH POWER
-            <div id="battery-bar"><div id="battery-fill"></div></div>
-            <div id="awareness" style="font-size: 9px; margin-top: 10px; color: #555;">SIGNAL STABILITY: 100%</div>
-        </div>
-
-        <div id="radio-msg"></div>
+    <div id="hud">
+        TORCH POWER
+        <div id="battery-bar"><div id="battery-fill"></div></div>
+        <div id="status" style="font-size: 9px; margin-top: 10px; color: #666;">SIGNAL: STABLE</div>
     </div>
+
+    <div id="radio-msg"></div>
+
+    <div id="joy-base"><div id="joy-knob"></div></div>
+    <div id="btn-light" class="btn">LIGHT</div>
+    <div id="btn-sprint" class="btn">RUN</div>
 
     <script>
         const canvas = document.getElementById("canvas");
         const ctx = canvas.getContext("2d");
 
-        // --- WORLD DATA ---
+        // --- MAP DATA (0: Floor, 1: Wall, 2: Pillar, 3: Door) ---
         const worldMap = [
             [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
             [1,0,0,0,0,0,1,0,0,0,0,0,0,0,1],
@@ -89,16 +84,17 @@
             [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
         ];
 
-        // --- STATE ---
+        // --- GAME STATE ---
         let posX = 1.5, posY = 1.5, dirX = 1, dirY = 0, planeX = 0, planeY = 0.66, pitch = 0;
-        let battery = 100, flashlightOn = true, radioOn = true, awareness = 0;
-        let isStarted = false, isSprinting = false;
+        let battery = 100, flashlightOn = true, isRunning = false, isStarted = false, awareness = 0;
         
-        // --- TOUCH CONTROLS ---
-        let joyActive = false, joyX = 0, joyY = 0;
+        // --- TOUCH INPUT STATE ---
+        let moveVec = { x: 0, y: 0 }; 
         let lookTouchId = null, lastLookX = 0, lastLookY = 0;
+        const DEADZONE = 15; // Pixels
+        const JOY_RADIUS = 70;
 
-        function init() {
+        function begin() {
             document.getElementById("start-screen").style.display = "none";
             isStarted = true;
             resize();
@@ -106,162 +102,190 @@
         }
 
         // --- JOYSTICK LOGIC ---
-        const joyBase = document.getElementById("joystick-base");
-        const joyKnob = document.getElementById("joystick-knob");
+        const joyBase = document.getElementById("joy-base");
+        const joyKnob = document.getElementById("joy-knob");
 
-        joyBase.addEventListener("touchstart", (e) => { joyActive = true; handleJoy(e); }, {passive: false});
-        window.addEventListener("touchmove", (e) => { if(joyActive) handleJoy(e); handleLook(e); }, {passive: false});
-        window.addEventListener("touchend", (e) => { 
-            for(let i=0; i<e.changedTouches.length; i++) {
-                if(e.changedTouches[i].target === joyBase) { joyActive = false; joyX = 0; joyY = 0; joyKnob.style.transform = `translate(0,0)`; }
-                if(e.changedTouches[i].identifier === lookTouchId) lookTouchId = null;
-            }
-        }, {passive: false});
+        function handleJoystick(e) {
+            e.preventDefault();
+            const touch = Array.from(e.touches).find(t => t.target === joyBase);
+            if (!touch) return;
 
-        function handleJoy(e) {
-            let touch = Array.from(e.touches).find(t => t.target === joyBase);
-            if(!touch) return;
             const rect = joyBase.getBoundingClientRect();
-            const centerX = rect.left + rect.width/2;
-            const centerY = rect.top + rect.height/2;
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+            
             let dx = touch.clientX - centerX;
             let dy = touch.clientY - centerY;
-            const dist = Math.min(60, Math.sqrt(dx*dx + dy*dy));
-            const angle = Math.atan2(dy, dx);
-            joyX = (Math.cos(angle) * dist) / 60;
-            joyY = (Math.sin(angle) * dist) / 60;
-            joyKnob.style.transform = `translate(${joyX * 40}px, ${joyY * 40}px)`;
+            let dist = Math.sqrt(dx*dx + dy*dy);
+
+            if (dist > DEADZONE) {
+                let mag = Math.min(dist, JOY_RADIUS);
+                let angle = Math.atan2(dy, dx);
+                moveVec.x = (Math.cos(angle) * mag) / JOY_RADIUS; // Strafe X
+                moveVec.y = (Math.sin(angle) * mag) / JOY_RADIUS; // Forward Y
+                joyKnob.style.transform = `translate(${moveVec.x * 45}px, ${moveVec.y * 45}px)`;
+            } else {
+                moveVec.x = 0; moveVec.y = 0;
+                joyKnob.style.transform = `translate(0,0)`;
+            }
         }
 
-        function handleLook(e) {
-            let touch = Array.from(e.touches).find(t => t.clientX > window.innerWidth/2);
-            if(!touch) return;
-            if(lookTouchId === null) {
+        joyBase.addEventListener("touchstart", handleJoystick);
+        joyBase.addEventListener("touchmove", handleJoystick);
+        joyBase.addEventListener("touchend", (e) => {
+            moveVec.x = 0; moveVec.y = 0;
+            joyKnob.style.transform = `translate(0,0)`;
+        });
+
+        // --- LOOK LOGIC (RIGHT SCREEN) ---
+        window.addEventListener("touchstart", (e) => {
+            const touch = e.changedTouches[0];
+            // Track touch if it's on the right half of the screen
+            if (touch.clientX > window.innerWidth / 2 && lookTouchId === null) {
                 lookTouchId = touch.identifier;
                 lastLookX = touch.clientX;
                 lastLookY = touch.clientY;
-            } else if (touch.identifier === lookTouchId) {
-                let dx = touch.clientX - lastLookX;
-                let dy = touch.clientY - lastLookY;
-                
-                // Yaw
-                let rotSpeed = dx * -0.005;
-                let oldDirX = dirX;
-                dirX = dirX * Math.cos(rotSpeed) - dirY * Math.sin(rotSpeed);
-                dirY = oldDirX * Math.sin(rotSpeed) + dirY * Math.cos(rotSpeed);
-                let oldPlaneX = planeX;
-                planeX = planeX * Math.cos(rotSpeed) - planeY * Math.sin(rotSpeed);
-                planeY = oldPlaneX * Math.sin(rotSpeed) + planeY * Math.cos(rotSpeed);
-
-                // Pitch
-                pitch -= dy * 2;
-                pitch = Math.max(-400, Math.min(400, pitch));
-
-                lastLookX = touch.clientX;
-                lastLookY = touch.clientY;
-            }
-        }
-
-        // --- BUTTONS ---
-        const btnSprint = document.getElementById("btn-sprint");
-        btnSprint.addEventListener("touchstart", () => isSprinting = true);
-        btnSprint.addEventListener("touchend", () => isSprinting = false);
-
-        function toggleLight() { if(battery > 0) flashlightOn = !flashlightOn; }
-        function toggleRadio() { radioOn = !radioOn; }
-        
-        window.addEventListener("click", (e) => {
-            if(e.target.id === "canvas") {
-                let cx = Math.floor(posX + dirX * 0.7);
-                let cy = Math.floor(posY + dirY * 0.7);
-                if(worldMap[cx] && worldMap[cx][cy] === 3) worldMap[cx][cy] = 0;
             }
         });
 
-        // --- ENGINE ---
-        function update() {
-            const moveSpeed = (isSprinting ? 0.09 : 0.05);
-            
-            // Forward/Back (joyY)
-            if(joyY !== 0) {
-                let nx = posX - dirX * joyY * moveSpeed;
-                let ny = posY - dirY * joyY * moveSpeed;
-                if(worldMap[Math.floor(nx)][Math.floor(posY)] === 0) posX = nx;
-                if(worldMap[Math.floor(posX)][Math.floor(ny)] === 0) posY = ny;
+        window.addEventListener("touchmove", (e) => {
+            const touch = Array.from(e.touches).find(t => t.identifier === lookTouchId);
+            if (!touch) return;
+
+            // Yaw (Swipe Left = Rotate Left)
+            let dx = touch.clientX - lastLookX;
+            let rotSpeed = dx * -0.006; 
+            let oldDirX = dirX;
+            dirX = dirX * Math.cos(rotSpeed) - dirY * Math.sin(rotSpeed);
+            dirY = oldDirX * Math.sin(rotSpeed) + dirY * Math.cos(rotSpeed);
+            let oldPlaneX = planeX;
+            planeX = planeX * Math.cos(rotSpeed) - planeY * Math.sin(rotSpeed);
+            planeY = oldPlaneX * Math.sin(rotSpeed) + planeY * Math.cos(rotSpeed);
+
+            // Pitch (Swipe Up = Look Up)
+            let dy = touch.clientY - lastLookY;
+            pitch -= dy * 1.5; 
+            pitch = Math.max(-400, Math.min(400, pitch)); // Clamp to prevent flip
+
+            lastLookX = touch.clientX;
+            lastLookY = touch.clientY;
+        });
+
+        window.addEventListener("touchend", (e) => {
+            if (Array.from(e.changedTouches).some(t => t.identifier === lookTouchId)) {
+                lookTouchId = null;
             }
-            // Strafe L/R (joyX)
-            if(joyX !== 0) {
-                let nx = posX + dirY * joyX * moveSpeed;
-                let ny = posY - dirX * joyX * moveSpeed;
-                if(worldMap[Math.floor(nx)][Math.floor(posY)] === 0) posX = nx;
-                if(worldMap[Math.floor(posX)][Math.floor(ny)] === 0) posY = ny;
+        });
+
+        // --- INTERACTION / DOORS ---
+        window.addEventListener("touchstart", (e) => {
+            // Tap center area to interact
+            if (e.target.id === "canvas") {
+                let cx = Math.floor(posX + dirX * 0.8);
+                let cy = Math.floor(posY + dirY * 0.8);
+                if (worldMap[cx] && worldMap[cx][cy] === 3) worldMap[cx][cy] = 0;
+            }
+        });
+
+        // --- BUTTONS ---
+        document.getElementById("btn-light").addEventListener("touchstart", (e) => {
+            e.preventDefault();
+            if (battery > 5) flashlightOn = !flashlightOn;
+        });
+        document.getElementById("btn-sprint").addEventListener("touchstart", (e) => {
+            e.preventDefault();
+            isRunning = true;
+        });
+        document.getElementById("btn-sprint").addEventListener("touchend", () => isRunning = false);
+
+        // --- CORE LOGIC ---
+        function update() {
+            const speed = (isRunning ? 0.08 : 0.045);
+            
+            // moveVec.y is Forward/Back (mapped to joystick dy)
+            // moveVec.x is Strafe (mapped to joystick dx)
+
+            // Forward/Back
+            if (moveVec.y !== 0) {
+                let nx = posX - (dirX * moveVec.y * speed);
+                let ny = posY - (dirY * moveVec.y * speed);
+                if (worldMap[Math.floor(nx)][Math.floor(posY)] === 0) posX = nx;
+                if (worldMap[Math.floor(posX)][Math.floor(ny)] === 0) posY = ny;
             }
 
-            // Awareness & Battery
-            if(flashlightOn) { 
-                battery -= 0.02; 
-                awareness += 0.01; 
-                if(battery <= 0) { battery = 0; flashlightOn = false; }
+            // Strafe
+            if (moveVec.x !== 0) {
+                let nx = posX + (dirY * moveVec.x * speed);
+                let ny = posY - (dirX * moveVec.x * speed);
+                if (worldMap[Math.floor(nx)][Math.floor(posY)] === 0) posX = nx;
+                if (worldMap[Math.floor(posX)][Math.floor(ny)] === 0) posY = ny;
             }
-            if(isSprinting && (joyX !== 0 || joyY !== 0)) awareness += 0.08;
+
+            // Awareness System
+            if (flashlightOn) { 
+                battery -= 0.025; 
+                awareness += 0.01;
+            }
+            if (isRunning && (moveVec.x !== 0 || moveVec.y !== 0)) awareness += 0.08;
             awareness = Math.max(0, Math.min(100, awareness - 0.005));
 
             document.getElementById("battery-fill").style.width = battery + "%";
-            document.getElementById("awareness").innerText = `SIGNAL STABILITY: ${Math.floor(100-awareness)}%`;
+            document.getElementById("status").innerText = awareness > 60 ? "SIGNAL: DISTORTED" : "SIGNAL: STABLE";
             
+            // Radio
             const rMsg = document.getElementById("radio-msg");
-            if(radioOn) {
-                if(awareness > 70) rMsg.innerText = "Control: ...Arthur? ...Something is behind... [STATIC]";
-                else rMsg.innerText = "Control: Proceed with inspection.";
-            } else { rMsg.innerText = ""; }
+            if (awareness > 70) rMsg.innerText = "Control: ...Arthur? ...I think it's in the hall... [STATIC]";
+            else rMsg.innerText = "Control: All gates are locked. Complete the circuit.";
         }
 
         function render() {
             const w = canvas.width, h = canvas.height;
-            ctx.fillStyle = "#000"; ctx.fillRect(0,0,w,h);
+            ctx.fillStyle = "#000"; ctx.fillRect(0, 0, w, h);
 
-            // Ceiling/Floor
-            if(flashlightOn) {
-                ctx.fillStyle = "#080808"; ctx.fillRect(0, 0, w, h/2 + pitch);
-                ctx.fillStyle = "#121212"; ctx.fillRect(0, h/2 + pitch, w, h);
-            }
+            // DYNAMIC LIGHTING: Absolute darkness when light is off
+            if (!flashlightOn) return; 
 
-            for(let x=0; x<w; x+=2) { // x+=2 for performance on mobile
+            // Dim Ambient (Base vision)
+            ctx.fillStyle = "#0a0a0a"; ctx.fillRect(0, 0, w, h / 2 + pitch);
+            ctx.fillStyle = "#121212"; ctx.fillRect(0, h / 2 + pitch, w, h);
+
+            for (let x = 0; x < w; x += 2) { 
                 let cameraX = 2 * x / w - 1;
                 let rDirX = dirX + planeX * cameraX;
                 let rDirY = dirY + planeY * cameraX;
                 let mX = Math.floor(posX), mY = Math.floor(posY);
-                let dDX = Math.abs(1/rDirX), dDY = Math.abs(1/rDirY);
+                let dDX = Math.abs(1 / rDirX), dDY = Math.abs(1 / rDirY);
                 let sX, sY, sDX, sDY;
 
-                if(rDirX < 0) { sX = -1; sDX = (posX - mX) * dDX; }
+                if (rDirX < 0) { sX = -1; sDX = (posX - mX) * dDX; }
                 else { sX = 1; sDX = (mX + 1.0 - posX) * dDX; }
-                if(rDirY < 0) { sY = -1; sDY = (posY - mY) * dDY; }
+                if (rDirY < 0) { sY = -1; sDY = (posY - mY) * dDY; }
                 else { sY = 1; sDY = (mY + 1.0 - posY) * dDY; }
 
                 let hit = 0, side = 0;
-                while(hit === 0) {
-                    if(sDX < sDY) { sDX += dDX; mX += sX; side = 0; }
+                while (hit === 0) {
+                    if (sDX < sDY) { sDX += dDX; mX += sX; side = 0; }
                     else { sDY += dDY; mY += sY; side = 1; }
-                    if(worldMap[mX][mY] > 0) hit = 1;
+                    if (worldMap[mX][mY] > 0) hit = 1;
                 }
 
                 let pDist = (side === 0) ? (sDX - dDX) : (sDY - dDY);
                 
-                // LIGHTING: Total Darkness when Off
-                let brightness = 0; 
-                if(flashlightOn) {
-                    brightness = 0.15; // Ambient
-                    let focus = Math.abs(cameraX);
-                    if(focus < 0.4) brightness += (1.0 - focus * 2.5) * (1.8 / pDist);
-                }
+                // Flashlight Falloff
+                let brightness = 0.15; 
+                let focus = Math.abs(cameraX);
+                if (focus < 0.45) brightness += (1.0 - focus * 2.2) * (2 / pDist);
+                if (side === 1) brightness *= 0.6;
 
-                let lH = Math.floor(h / pDist);
+                // Presence Distortion: Walls wobble at high awareness
+                let distort = (awareness > 50) ? Math.sin(Date.now() * 0.01 + x * 0.1) * (awareness/500) : 0;
+
+                let lH = Math.floor(h / (pDist + distort));
                 let dStart = -lH / 2 + h / 2 + pitch;
+                
                 let color = [80, 80, 85];
-                if(worldMap[mX][mY] === 2) color = [120, 30, 30];
-                if(worldMap[mX][mY] === 3) color = [100, 90, 50];
-                if(side === 1) brightness *= 0.6;
+                if (worldMap[mX][mY] === 2) color = [130, 30, 30]; // Pillar
+                if (worldMap[mX][mY] === 3) color = [100, 90, 50]; // Door
 
                 ctx.fillStyle = `rgb(${color[0]*brightness},${color[1]*brightness},${color[2]*brightness})`;
                 ctx.fillRect(x, dStart, 2, lH);
@@ -269,7 +293,7 @@
         }
 
         function loop() {
-            if(isStarted) { update(); render(); }
+            if (isStarted) { update(); render(); }
             requestAnimationFrame(loop);
         }
 
